@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Detalii {{ device_id }}</title>
+    <script>
+    async function fetchData() {
+        try {
+            const resp = await fetch(`{{ url_for('runtime') }}?device_id={{ device_id }}`);
+            const data = await resp.json();
+            if (!data.error) {
+                document.getElementById('serial_nb').textContent = data.serial_nb;
+                document.getElementById('run_hour').textContent = data.run_hour;
+                document.getElementById('import').textContent = data.import_energy + ' kW/h';
+                document.getElementById('export').textContent = data.export_energy + ' kW/h';
+                document.getElementById('last_time_update').textContent = data.last_time_update;
+            }
+        } catch (e) {
+            console.error('Fetch error:', e);
+        }
+    }
+
+    window.onload = () => {
+        fetchData();
+        setInterval(fetchData, 1000);
+    };
+    </script>
+</head>
+<body>
+    <h1>Dispozitiv: {{ device_id }}</h1>
+    <p>Serie dispozitiv: <span id = "serial_nb">{{device.serial_nb}}</span></p>
+    <p>Numar ore activ: <span id = "run_hour">{{device.run_hour}}</span></p>
+    <p>Import Energy: <span id="import">{{device.import_energy}} kW/h</span></p>
+    <p>Export Energy: <span id="export">{{device.export_energy}} kW/h</span></p>
+    <p>Last Update: <span id="last_time_update">{{device.last_time_update}}</span></p>
+    <p><a href="{{ url_for('index') }}">Înapoi la listă</a></p>
+</body>
+</html>

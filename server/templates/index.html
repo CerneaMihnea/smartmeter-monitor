@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Dispozitive</title>
+    <script>
+        function parseDateTime(str) {
+            return new Date(str.replace(' ', 'T'));
+        }
+
+        async function fetchData() {
+            try {
+                const resp = await fetch(`{{ url_for('runtime_index') }}`);
+                const data = await resp.json();
+
+                if (!data.error) {
+                    const currentTime = parseDateTime(data.ora);
+                    document.getElementById('ora').textContent = data.ora;
+                    document.getElementById('ora').setAttribute('datetime', data.ora);
+
+                    for (const [id, dev] of Object.entries(data.devices)) {
+                        const statusEl = document.getElementById(`status-${id}`);
+                        if (!statusEl || !dev.last_time_update) continue;
+
+                        const lastUpdate = parseDateTime(dev.last_time_update);
+                        const diffSec = (currentTime - lastUpdate) / 1000;
+
+                        if (diffSec <= 3) {
+                            statusEl.classList.add('active');
+                            statusEl.classList.remove('inactive');
+                        } else {
+                            statusEl.classList.add('inactive');
+                            statusEl.classList.remove('active');
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('Fetch error:', e);
+            }
+        }
+
+        window.onload = () => {
+            fetchData();
+            setInterval(fetchData, 1000);
+        };
+    </script>
+
+    <style>
+    .status {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+      background-color: red; /* implicit */
+    }
+    .status.active {
+      background-color: green;
+    }
+    .status.inactive {
+      background-color: red;
+    }
+    </style>
+</head>
+<body>
+    <h1>Lista Dispozitivelor</h1>
+    <time id="ora" datetime="{{ ora }}">{{ ora }}</time>
+    <ul>
+      {% for id, dev in devices.items() %}
+      <li data-device-id="{{ id }}">
+          <span class="status {% if dev.status == 1 %}active{% else %}inactive{% endif %}" id="status-{{ id }}"></span>
+          <a href="{{ url_for('device_detail', device_id=id) }}">{{ id }}</a>
+          – Last entry: {{ dev.last_time_update or 'N/A' }}
+      </li>
+      {% endfor %}
+    </ul>
+
+    <h2>Adaugă dispozitiv nou</h2>
+    <form method="POST" action="{{ url_for('add_device') }}">
+        <input type="text" name="device_id" placeholder="Nume dispozitiv" required><br><br>
+
+        <label for="slave_id">Slave ID:</label>
+        <input type="number" id="slave_id" name="slave_id" min="1" max="247" required><br><br>
+
+        <label for="baudrate">Baudrate:</label>
+        <input type="number" id="baudrate" name="baudrate" value="9600" required><br><br>
+
+        <label for="data_bits">Data bits:</label>
+        <select id="data_bits" name="data_bits" required>
+            <option value="7">7</option>
+            <option value="8" selected>8</option>
+        </select><br><br>
+
+        <label for="stop_bits">Stop bits:</label>
+        <select id="stop_bits" name="stop_bits" required>
+            <option value="1" selected>1</option>
+            <option value="2">2</option>
+        </select><br><br>
+
+        <label for="parity">Parity:</label>
+        <select id="parity" name="parity" required>
+            <option value="None" selected>None</option>
+            <option value="1">Even</option>
+            <option value="0">Odd</option>
+        </select><br><br>
+
+        <button type="submit">Adaugă</button>
+    </form>
+</body>
+</html>
